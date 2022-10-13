@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>WebGL-制作透明闪烁的星星</title>
+  <style>
+    #canvas {
+        background: url("./images/sky.jpg");
+        background-size: cover;
+        background-position: right bottom;
+    }
+  </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <!--顶点着色器-->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute float a_PointSize;
+        void main() {
+            //点位
+            gl_Position = a_Position;
+            //尺寸
+            gl_PointSize = a_PointSize;
+        }
+    </script>
+    <!--片元着色器-->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec4 u_FragColor;
+        void main() {
+            float dist = distance(gl_PointCoord, vec2(0.5, 0.5));
+            if (dist < 0.5) {
+                gl_FragColor = u_FragColor;
+            } else {
+                discard;
+            }
+        }
+    </script>
+  <script type="module">
+    import {initShaders} from './jsm/utils.js';
+    import Compose from './jsm/Compose.js';
+    import Track from './jsm/Track.js';
+
+    const canvas=document.getElementById('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const gl = canvas.getContext('webgl');
+
+    //开启片元的颜色合成功能
+    gl.enable(gl.BLEND);
+    //设置片元的合成方式
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+    const g_points=[];
+
+    //合成对象
+    const compose = new Compose();
+
+    //获取着色器文本
+    const vsSource = document.querySelector('#vertexShader').innerText;
+    const fsSource = document.querySelector('#fragmentShader').innerText;
+
+    //看到的额现象是每点击一下，原来的点都会消失，鼠标点的地方会生成一个新的点，
+    //gl.drawArrays() 方法只会同步绘图，走完了js 主线程后，再次绘图时，就会从头再来。也就说，异步执行的drawArrays() 方法会把画布上的图像都刷掉。
+    canvas.addEventListener('click', function(event) {
+        const {clientX, clientY} = event;
+        const {left, top, width, height} = canvas.getBoundingClientRect();
+        const [cssX, cssY]= [clientX - left, clientY - top];
+        const [halfWidth, halfHeight] = [width/2, height/2];
+        const [xBaseCenter, yBaseCenter] = [cssX- halfWidth, cssY - halfHeight];
+        const yBaseCenterTop = -yBaseCenter;
+        const [x, y] = [xBaseCenter/halfWidth, yBaseCenterTop/halfHeight]
+       // const color = new Float32Array([0.87, 0.91, 1, Math.random()]);
+        const s = Math.random()*5 + 2;
+        let a = 1;
+        let obj = {x, y, s, a}
+        g_points.push(obj);
+        
+        //建立轨道对象
+        const track = new Track(obj);
+        track.start = new Date();
+        track.timeLen = 2000;
+        track.loop = true;
+        track.keyMap = new Map([
+            [
+                'a',
+                [
+                    [500, a],
+                    [1000, 0],
+                    [1500, a],
+                ]
+            ]
+        ]);
+        compose.add(track);
+        //render();
+
+    });
+
+    !(function ani() {
+        compose.update(new Date());
+        render();
+        requestAnimationFrame(ani);
+    })();
+
+    function render() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        g_points.forEach(({x,y, s, a})=>{
+            gl.vertexAttrib2f(a_Position,x,y);
+            gl.vertexAttrib1f(a_PointSize,s);
+            //gl.uniform4f(u_FragColor, ...color);
+            const arr = new Float32Array([0.87, 0.91, 1, a])
+            gl.uniform4fv(u_FragColor, arr);
+            gl.drawArrays(gl.POINTS, 0, 1);
+        });
+    }
+
+    //初始化着色器
+    //功能： 解析着色器文本，整合到程序对象里，实现两种语言的相互通信
+    initShaders(gl, vsSource, fsSource);
+
+
+    const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+    const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+    const u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
+   
+  </script>
+</body>
+
+</html>

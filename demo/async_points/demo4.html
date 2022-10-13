@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>WebGL-鼠标绘制多条线</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    #canvas {
+      background-color: antiquewhite;
+    }
+  </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <!--顶点着色器-->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        void main() {
+            //点位
+            gl_Position = a_Position;
+            //尺寸
+            gl_PointSize = 10.0;
+        }
+    </script>
+    <!--片元着色器-->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform bool u_IsPOINTS;
+        void main() {
+            if(u_IsPOINTS){
+                float dist = distance(gl_PointCoord, vec2(0.5, 0.5));
+                if (dist < 0.5) {
+                    gl_FragColor=vec4(1,1,0,1);
+                } else {
+                    discard;
+                }
+            } else {
+                gl_FragColor=vec4(1,1,0,1);
+            }
+        }
+    </script>
+  <script type="module">
+    import {initShaders} from './../jsm/utils.js';
+    import Sky from './../jsm/sky.js';
+    import Poly from './../jsm/poly.js';
+    const canvas=document.getElementById('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const gl = canvas.getContext('webgl');
+
+    const sky = new Sky(gl);
+    //当前正在绘制的多边形
+    let poly = null;
+    //获取着色器文本
+    const vsSource = document.querySelector('#vertexShader').innerText;
+    const fsSource = document.querySelector('#fragmentShader').innerText;
+
+    
+
+
+
+    //初始化着色器
+    //功能： 解析着色器文本，整合到程序对象里，实现两种语言的相互通信
+    initShaders(gl, vsSource, fsSource);
+    gl.clearColor(0,0,0,1)
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    canvas.oncontextmenu = function() {
+        return false;
+    }
+
+    canvas.addEventListener('mousedown', (event)=>{
+        if (event.button ==2) {
+            popVertice();
+        } else {
+            const {x,y}= getMousePosInWebgl(event, canvas);
+            if (poly) {
+                poly.addVertice(x,y);
+            } else {
+                crtPoly(x,y);
+            }
+        }
+        render();
+    });
+
+    //鼠标移动
+    canvas.addEventListener('mousemove', (event)=>{
+        if (poly) {
+            const {x,y}= getMousePosInWebgl(event, canvas);
+            poly.setVertice(poly.count-1,x,y);
+            render();
+        }
+    });
+
+    function popVertice() {
+        poly.popVertice();
+        poly= null;
+    }
+    //创建多边形对象
+    function crtPoly(x,y) {
+        poly = new Poly({
+            vertices:[x,y,x,y],
+            types:['POINTS', 'LINE_STRIP'],
+            circleDot: true
+        });
+        sky.add(poly);
+    }
+    function render() {
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        sky.draw();
+    }
+    function getMousePosInWebgl(event, canvas) {
+        const {clientX, clientY} = event;
+        const {left, top, width, height} = canvas.getBoundingClientRect();
+        const [cssX, cssY]= [clientX - left, clientY - top];
+        const [halfWidth, halfHeight] = [width/2, height/2];
+        const [xBaseCenter, yBaseCenter] = [cssX- halfWidth, cssY - halfHeight];
+        const yBaseCenterTop = -yBaseCenter;
+        const [x, y] = [xBaseCenter/halfWidth, yBaseCenterTop/halfHeight];
+        return {x,y};
+    }
+   
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>WebGL</title>
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+  <script type="module">
+    //引入Color对象
+    import { Color } from "https://unpkg.com/three/build/three.module.js";
+    const canvas=document.getElementById('canvas');
+    const gl = canvas.getContext('webgl');
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    const rgbaColor= 'rgba(255,0,0,1)';
+    const reg = RegExp(/\((.*)\)/);
+    const regStr = reg.exec(rgbaColor)[1];
+    const rgb = regStr.split(',').map(e=> parseInt(e));
+    const r = rgb[0] / 255;
+    const g = rgb[1] / 255;
+    const b = rgb[2] / 255;
+    const a = rgb[3];
+    gl.clearColor(r, g, b, a);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    //实例化Color对象
+    const color = new Color(1, 0, 0);
+
+    !(function ani() {
+        //color实例下还有一个偏移量：color.offsetHSL(色相偏移量, 饱和度偏移量, 亮度偏移量)
+        color.offsetHSL(0.005, 0,0);
+        gl.clearColor(color.r, color.g, color.b, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        requestAnimationFrame(ani);
+    })()
+
+  </script>
+</body>
+
+</html>
