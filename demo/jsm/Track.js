@@ -37,7 +37,6 @@ function getValBetweenFms(time, fms, last) {
         };
         const k = delta.y/delta.x;
         const b = fm1[1]- fm1[0]*k;
-        console.log(k * time + b)
         return k * time + b;
     }
    }     

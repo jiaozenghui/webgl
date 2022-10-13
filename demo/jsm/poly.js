@@ -2,7 +2,7 @@ const defAttr=()=>({
     gl:null,
     vertices:[],
     geoData:[],
-    size:2,
+    size:2,//顶点中的分量个数
     attrName: 'a_Position',
     count: 0,
     types: ['POINTS'],
@@ -22,7 +22,7 @@ export default class Poly{
         this.upDataBuffer();
         const a_Position = gl.getAttribLocation(gl.program, attrName);
         gl.vertexAttribPointer(a_Position, size, gl.FLOAT, false, 0,0);
-        gl.vertexAttrib3f(a_Position, 0.0, 0.0, 0.0);
+        //gl.vertexAttrib3f(a_Position, 0.0, 0.0, 0.0);
         gl.enableVertexAttribArray(a_Position);
         //如果是圆点，就获取一下uniform变量
         if(circleDot) {
